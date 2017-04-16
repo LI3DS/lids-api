@@ -4,8 +4,8 @@ flask:
     pg_host: localhost
     pg_name: li3ds
     pg_port: 5432
-    pg_user: user
-    pg_password: userpass
+    pg_user: li3ds
+    pg_password: li3ds
     SWAGGER_UI_DOC_EXPANSION: none
     SWAGGER_UI_JSONEDITOR: True
-    HEADER_API_KEY:
+    HEADER_API_KEY: li3dsli3dsli3dsli3dsli3dsli3ds
