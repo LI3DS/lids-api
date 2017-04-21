@@ -15,7 +15,7 @@ RUN pip3 install --upgrade pip
 
 # Install development packages
 RUN apt-get update -y && \
-    apt-get install -y git make autoconf libxml2-dev
+    apt-get install -y git make autoconf libxml2-dev graphviz
 
 # Install pg_pointcloud
 RUN git clone https://github.com/pgpointcloud/pointcloud.git
