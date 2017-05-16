@@ -45,10 +45,11 @@ class Projects(Resource):
     def post(self):
         '''
         Create a project.
-        Also create a schema with the project's name.
         '''
         return Database.query_asdict(
-            "select li3ds.create_project(%(name)s, %(timezone)s, %(extent)s) as id",
+            "insert into li3ds.project (name, timezone, extent) "
+            "values (%(name)s, %(timezone)s, %(extent)s::geometry) "
+            "returning id",
             defaultpayload(api.payload)
         ), 201
 
@@ -76,7 +77,7 @@ class OneProject(Resource):
         res = Database.query_asjson("select * from li3ds.project where name=%s", (name,))
         if not res:
             nsproject.abort(404, 'Project not found')
-        Database.query_aslist("select li3ds.delete_project(%s)", (name,))
+        Database.query_aslist("delete from li3ds.project where id=%s", (name,))
         return '', 410
 
 
