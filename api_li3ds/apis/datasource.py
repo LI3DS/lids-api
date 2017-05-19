@@ -9,6 +9,11 @@ nsds = api.namespace('datasources', description='datasources related operations'
 
 datasource_model_post = nsds.model('Datasource Model Post', {
     'uri': fields.String,
+    'type': fields.String(required=True),
+    'paramaters': fields.Raw,
+    'bounds': fields.List(fields.Float),
+    'capture_start': fields.DateTime(dt_format='iso8601'),
+    'capture_end': fields.DateTime(dt_format='iso8601'),
     'referential': fields.Integer(required=True),
     'session': fields.Integer(required=True)
 })
@@ -46,9 +51,15 @@ class Datasources(Resource):
     def post(self):
         '''Create a datasource'''
         return Database.query_asdict(
-            "insert into li3ds.datasource (referential, session, uri) "
-            "values (%(referential)s, %(session)s, %(uri)s) "
-            "returning *",
+            '''
+            insert into li3ds.datasource (uri, type, parameters, bounds,
+                                          capture_start, capture_end,
+                                          referential, session)
+            values (%(uri)s, %(type)s, %(parameters)s, %(bounds)s,
+                    %(capture_start)s, %(capture_end)s,
+                    %(referential)s, %(session)s)
+            returning *
+            ''',
             defaultpayload(api.payload)
         ), 201
 
