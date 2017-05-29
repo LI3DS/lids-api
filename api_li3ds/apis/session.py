@@ -3,6 +3,7 @@ from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
+from api_li3ds import fields as li3ds_fields
 from .datasource import datasource_model
 
 nssession = api.namespace('sessions', description='sessions related operations')
@@ -10,8 +11,8 @@ nssession = api.namespace('sessions', description='sessions related operations')
 session_model_post = nssession.model('Session Model Post', {
     'name': fields.String,
     'platform': fields.Integer(required=True),
-    'start_time': fields.DateTime(dt_format='iso8601', default=None),
-    'end_time': fields.DateTime(dt_format='iso8601', default=None),
+    'start_time': li3ds_fields.DateTime(dt_format='iso8601', default=None),
+    'end_time': li3ds_fields.DateTime(dt_format='iso8601', default=None),
     'project': fields.Integer(required=True),
 })
 

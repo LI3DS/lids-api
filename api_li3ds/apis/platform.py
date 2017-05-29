@@ -5,6 +5,8 @@ from flask_restplus import fields
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
 from api_li3ds import dot
+from api_li3ds import fields as li3ds_fields
+
 from .sensor import sensor_model
 
 nspfm = api.namespace('platforms', description='platforms related operations')
@@ -14,8 +16,8 @@ platform_model_post = nspfm.model(
     {
         'name': fields.String,
         'description': fields.String,
-        'start_time': fields.DateTime(dt_format='iso8601', default=None),
-        'end_time': fields.DateTime(dt_format='iso8601', default=None),
+        'start_time': li3ds_fields.DateTime(dt_format='iso8601', default=None),
+        'end_time': li3ds_fields.DateTime(dt_format='iso8601', default=None),
     })
 
 platform_model = nspfm.inherit(
