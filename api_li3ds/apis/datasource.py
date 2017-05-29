@@ -3,6 +3,7 @@ from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
+from api_li3ds import fields as li3ds_fields
 
 
 nsds = api.namespace('datasources', description='datasources related operations')
@@ -12,8 +13,8 @@ datasource_model_post = nsds.model('Datasource Model Post', {
     'type': fields.String(required=True),
     'paramaters': fields.Raw,
     'bounds': fields.List(fields.Float),
-    'capture_start': fields.DateTime(dt_format='iso8601'),
-    'capture_end': fields.DateTime(dt_format='iso8601'),
+    'capture_start': li3ds_fields.DateTime(dt_format='iso8601'),
+    'capture_end': li3ds_fields.DateTime(dt_format='iso8601'),
     'referential': fields.Integer(required=True),
     'session': fields.Integer(required=True)
 })
@@ -24,7 +25,7 @@ datasource_model = nsds.inherit('Datasource Model', datasource_model_post, {
 })
 
 processing_model_post = nsds.model('Processing Model Post', {
-    'launched': fields.DateTime(dt_format='iso8601', default=None),
+    'launched': li3ds_fields.DateTime(dt_format='iso8601', default=None),
     'tool': fields.String(required=True),
     'description': fields.String,
     'source': fields.Integer(required=True),

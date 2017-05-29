@@ -3,6 +3,7 @@ from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
+from api_li3ds import fields as li3ds_fields
 
 nsrf = api.namespace('referentials', description='referentials related operations')
 
@@ -32,9 +33,9 @@ transfo_model = nsrf.model(
         'transfo_type': fields.Integer,
         'description': fields.String,
         'parameters': fields.Raw,
-        'tdate': fields.DateTime(dt_format='iso8601'),
-        'validity_start': fields.DateTime(dt_format='iso8601', default=None),
-        'validity_end': fields.DateTime(dt_format='iso8601', default=None),
+        'tdate': li3ds_fields.DateTime(dt_format='iso8601'),
+        'validity_start': li3ds_fields.DateTime(dt_format='iso8601', default=None),
+        'validity_end': li3ds_fields.DateTime(dt_format='iso8601', default=None),
     })
 
 

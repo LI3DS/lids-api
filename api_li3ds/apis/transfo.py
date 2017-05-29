@@ -3,6 +3,7 @@ from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
+from api_li3ds import fields as li3ds_fields
 
 nstf = api.namespace('transfos', description='transformations related operations')
 
@@ -16,9 +17,9 @@ transfo_model_post = nstf.model(
         'transfo_type': fields.Integer,
         'description': fields.String,
         'parameters': fields.Raw,
-        'tdate': fields.DateTime(dt_format='iso8601'),
-        'validity_start': fields.DateTime(dt_format='iso8601'),
-        'validity_end': fields.DateTime(dt_format='iso8601'),
+        'tdate': li3ds_fields.DateTime(dt_format='iso8601'),
+        'validity_start': li3ds_fields.DateTime(dt_format='iso8601'),
+        'validity_end': li3ds_fields.DateTime(dt_format='iso8601'),
     })
 
 transfo_model = nstf.inherit(
