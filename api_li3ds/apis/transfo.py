@@ -16,7 +16,7 @@ transfo_model_post = nstf.model(
         'target': fields.Integer,
         'transfo_type': fields.Integer,
         'description': fields.String,
-        'parameters': fields.Raw,
+        'parameters': fields.List(fields.Raw),
         'tdate': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_start': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_end': li3ds_fields.DateTime(dt_format='iso8601'),
@@ -60,12 +60,14 @@ class Transfo(Resource):
     @nstf.response(201, 'Transformation created')
     def post(self):
         '''Create a transformation between referentials'''
+        # note: without the ::jsonb[] cast psycopg2 will adapt the "parameters" list
+        # to a text[] SQL type
         return Database.query_asdict(
             """
             insert into li3ds.transfo (name, source, target, transfo_type, description,
                                        parameters, tdate, validity_start, validity_end)
             values (%(name)s, %(source)s, %(target)s, %(transfo_type)s, %(description)s,
-                    %(parameters)s, %(tdate)s, %(validity_start)s, %(validity_end)s)
+                    %(parameters)s::jsonb[], %(tdate)s, %(validity_start)s, %(validity_end)s)
             returning *
             """, defaultpayload(api.payload)
         ), 201
