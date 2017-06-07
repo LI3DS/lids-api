@@ -32,7 +32,7 @@ def make_dot(name, url, label, nodes, edges):
 
     for edge in edges:
         # highlight sensor connections in blue
-        color = 'blue' if edge.sc else 'black'
+        color = 'black' if edge.sensor else 'blue'
         label = '{tname}\\n({id})'.format_map(edge._asdict())
         dot.edge(str(edge.source), str(edge.target), label=label, color=color)
 
@@ -44,10 +44,10 @@ def transfo_trees(name, url, label, ids):
 
     edges = Database.query(
         """
-        select t.id, t.source, t.target, t.transfo_type, tf.sc, t.name, tft.name as tname
+        select t.id, t.source, t.target, t.transfo_type, tf.sensor, t.name, tft.name as tname
         from (
             select distinct
-                unnest(tt.transfos) as tid, sensor_connections as sc
+                unnest(tt.transfos) as tid, sensor
             from li3ds.transfo_tree tt where tt.id = ANY(%s)
         ) as tf
         join li3ds.transfo t on t.id = tf.tid
