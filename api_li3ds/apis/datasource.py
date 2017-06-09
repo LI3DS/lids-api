@@ -11,7 +11,7 @@ nsds = api.namespace('datasources', description='datasources related operations'
 datasource_model_post = nsds.model('Datasource Model Post', {
     'uri': fields.String,
     'type': fields.String(required=True),
-    'paramaters': fields.Raw,
+    'parameters': fields.Raw,
     'bounds': fields.List(fields.Float),
     'capture_start': li3ds_fields.DateTime(dt_format='iso8601'),
     'capture_end': li3ds_fields.DateTime(dt_format='iso8601'),
