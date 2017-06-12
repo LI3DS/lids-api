@@ -17,7 +17,7 @@ transfo_model_post = nstf.model(
         'target': fields.Integer,
         'transfo_type': fields.Integer,
         'description': fields.String,
-        'parameters': li3ds_fields.Json(as_list=True),
+        'parameters': fields.List(fields.Raw),
         'tdate': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_start': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_end': li3ds_fields.DateTime(dt_format='iso8601'),
