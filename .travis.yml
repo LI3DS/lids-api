@@ -3,15 +3,15 @@ sudo: required
 language: python
 env:
   global:
-    - secure: "C2OXrhdcfaIMwshC4IC+6Z8NcVQP0AYeM/t476GcJyZWhSPTQdumINV62fHyGIMrt5Pkf8Ag/A3tgWpfoiI0z1c7xkKRehKw//NNZfsNh+UUIuqi5/6zT94e1B9r1m6jxO6TAVLL6v7/RFxdJFA7LjtGJGdM8iAuAv/ifW8J+UF5T39TBsyBbi9kVV2tLtxfe67+Q5rXOzuN/JZvScuT86x6uPSWhN6wAwarxURfdvx9iokdCVgYBC9PNXICk4Iey22s3WcV2So2bjGxBa97vrghjT3AzC8TSFItanM49vEUy4n/p31uGj890mkdpE42erCD72/2b353UWJ1u8HKwh9RSg4oiu1v+uHLW8jkY0cGm469UInk8QSTLvZkel6pv8MDDR6S6uXenDBTkI+HjDU50pjW9IKLN7o9d5Xi0C94AL8bBR4BqbGId8xiLr8S9+TAVFYOofSLXcuecNV05zhUuqIVl74H3QDNQbKgVlPxBtPjCJtw634I8RJ9u/gWa2dsQ4PpwZc5MhdrtGUN+gXgsHAAncRFGfo+H7ds7L2KRf6JxJMZo8y+xePkqYGTfwuZ9MjJ2o64rn6s5xEMklvyux5g8KMB0rxsibp4IQ0wn7IgPFpGelAb0rZ7hVwPo//jBQaQf9dszavCwxQYVhINg0nic6WWg/zpBxFg5eI="
+  - secure: FzrE07dPOiU8EI0+SiDvi4yEEjJlfCksssaeaK8NF9ZXRv12uBT4WhNN/j89jfYJn//8L6imy13d9Wa9RiW/oCploMH5uhtehl/QUdKxW68qKrd7+fcWJ/4/yiNJ9YVykPBKohRRt91kzu6S9688EeeOJKoP+8BvQBatpYjAHH3gGxThS8BEUbQ2fJ9V0spyxpZI+5xuGVKKogdd293BgbqNhSeug+vzF+FIAp5CKbwez2nEK2GlG2R83dN7uMO9QkP8G8dguJuc0h4MPcyVw1AKWRQPZs8rF9B+jzpi2DTuzuY91lv+ARBy2zWsshg/HbkS+KwhLo70gqqOXVCPCtJKMb75LfjbrZrFPHBaqy8yScJQaxLsDWWcOp39uzIPyzWbQVgsWWrfDlV+zeNntTxhx3+ndCNu7kL8ZarR/ykgNQB8AvzZTKDmX+z0Nh4Hew4WzfVN2TyQZ3KFgocOUZp5B2ss+KRdEBfKSjhGYwB76ObRA7FKwuxvS8KZIoxdt4TtWYxTa0DQ0HdWukyfC6SXC3OgKIHDs7NSp7U1Tx2UZx8+KUlWYwbyKyeWavVZgxA4Os1ltz2McyuD2Qjhy4UynWKAx8dMjIsBHHKnFIY2C0yRhP1I8mrsQ1S4tCdaNEEedDb02uMCIt+mtAOeYmyThs3/b4ZXWJ3J+WkBqWo=
 python:
-  - "3.4"
-  - "3.5"
+  - '3.4'
+  - '3.5'
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install libcgraph6 graphviz
-install: "pip install -e .[dev]"
+install: pip install -e .[dev]
 script: py.test -s -v || true
 after_success:
-  - >
-    test $TRAVIS_BRANCH = "master" && test $TRAVIS_PULL_REQUEST = "false" && curl -H "Content-Type: application/json" -X POST https://registry.hub.docker.com/u/li3ds/li3ds/trigger/$DOCKER_API_KEY/
+  - 'test $TRAVIS_BRANCH = "master" && test $TRAVIS_PULL_REQUEST = "false" && curl -H
+    "Content-Type: application/json" -X POST https://registry.hub.docker.com/u/li3ds/li3ds/trigger/$DOCKER_API_KEY/'
