@@ -1,26 +1,35 @@
 LI3DS API
 =========
 
+|unix_build| |license|
+
 Api for accessing metadata of a li3ds datastore.
 
-1. Create your virtualenv
-2. Install dependencies (dev)::
+* Create your virtualenv
+* Install dependencies (dev)::
 
     pip install -e .[dev,doc]
 
-3. Install dependencies (prod)::
+* Install dependencies (prod)::
 
     pip install .[prod]
 
-4. (dev) Duplicate the conf/api_li3ds.sample.yml file to conf/api_li3ds.yml and adapt parameters
+* (dev) Duplicate the conf/api_li3ds.sample.yml file to conf/api_li3ds.yml and adapt parameters
 
-5. (dev) Launch the application using:
-
-.. code-block::
+* (dev) Launch the application using::
 
     python api_li3ds/wsgi.py
 
-6. (dev) Go to https://localhost:5000 and start to play with the API
+* (dev) Go to https://localhost:5000 and start to play with the API
 
 .. image:: https://raw.githubusercontent.com/LI3DS/api-li3ds/master/screen-api.png
     :align: center
+
+
+.. |unix_build| image:: https://img.shields.io/travis/LI3DS/api-li3ds/master.svg?style=flat-square&label=unix%20build
+    :target: http://travis-ci.org/LI3DS/api-li3ds
+    :alt: Build status of the master branch
+
+.. |license| image:: https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square
+    :target: https://raw.githubusercontent.com/LI3DS/api-li3ds/master/LICENSE
+    :alt: Package license
