@@ -14,7 +14,7 @@ Api for accessing metadata of a li3ds datastore.
 
     pip install .[prod]
 
-* (dev) Duplicate the conf/api_li3ds.sample.yml file to conf/api_li3ds.yml and adapt parameters
+* (dev) Duplicate the ``conf/api_li3ds.sample.yml`` to ``conf/api_li3ds.yml`` and adapt parameters
 
 * (dev) Launch the application using::
 
