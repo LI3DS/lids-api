@@ -70,3 +70,4 @@ def init_apis():
     from api_li3ds.apis.referential import nsrf
     from api_li3ds.apis.transfo import nstf
     from api_li3ds.apis.transfotree import nstft
+    from api_li3ds.apis.foreignpc import nsfpc

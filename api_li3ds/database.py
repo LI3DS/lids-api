@@ -104,6 +104,14 @@ class Database():
         return list(cls._query(query, parameters=parameters))
 
     @classmethod
+    def notices(cls, query, parameters=None):
+        '''
+        Get notices raised during a query
+        '''
+        list(cls._query(query, parameters=parameters, rowcount=True))
+        return cls.db.notices
+
+    @classmethod
     def init_app(cls, app):
         '''
         Initialize db session lazily
