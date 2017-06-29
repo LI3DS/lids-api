@@ -46,6 +46,8 @@ class Projects(Resource):
         '''
         Create a project.
         '''
+        if 'timezone' not in api.payload:
+            api.payload.update(timezone=project_model_post['timezone'].default)
         return Database.query_asdict(
             "insert into li3ds.project (name, timezone, extent) "
             "values (%(name)s, %(timezone)s, %(extent)s::geometry) "
