@@ -41,15 +41,17 @@ class Projects(Resource):
 
     @api.secure
     @nsproject.expect(project_model_post)
-    @nsproject.marshal_with(project_model, mask='id')
+    @nsproject.marshal_with(project_model)
     def post(self):
         '''
         Create a project.
         '''
+        if 'timezone' not in api.payload:
+            api.payload.update(timezone=project_model_post['timezone'].default)
         return Database.query_asdict(
             "insert into li3ds.project (name, timezone, extent) "
             "values (%(name)s, %(timezone)s, %(extent)s::geometry) "
-            "returning id",
+            "returning *",
             defaultpayload(api.payload)
         ), 201
 
