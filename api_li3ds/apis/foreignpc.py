@@ -51,6 +51,29 @@ multicorn_drivers_sql = """
 """
 
 
+servers_sql = """
+    select
+        s.srvname as "name"
+        , case when srvoptions is null
+            then '' else (
+            select option_value
+            from pg_options_to_table(srvoptions)
+            where option_name = 'wrapper')
+          end as "driver"
+        , case when srvoptions is null
+            then to_jsonb(''::text) else (
+            select jsonb_object_agg(option_name, option_value)
+            from pg_options_to_table(srvoptions)
+            where option_name != 'wrapper')
+          end as "options"
+    from pg_catalog.pg_foreign_server s
+        join pg_catalog.pg_foreign_data_wrapper f on f.oid=s.srvfdw
+    left join pg_description d
+        on d.classoid = s.tableoid
+        and d.objoid = s.oid and d.objsubid = 0
+"""
+
+
 @nsfpc.route('/drivers', endpoint='foreigndrivers')
 class ForeignDrivers(Resource):
 
@@ -69,27 +92,7 @@ class ForeignServers(Resource):
         '''
         Retrieve foreign server list
         '''
-        return Database.query_asjson("""
-            select
-                s.srvname as "name"
-                , case when srvoptions is null
-                    then '' else (
-                    select option_value
-                    from pg_options_to_table(srvoptions)
-                    where option_name = 'wrapper')
-                  end as "driver"
-                , case when srvoptions is null
-                    then to_jsonb(''::text) else (
-                    select jsonb_object_agg(option_name, option_value)
-                    from pg_options_to_table(srvoptions)
-                    where option_name != 'wrapper')
-                  end as "options"
-            from pg_catalog.pg_foreign_server s
-                join pg_catalog.pg_foreign_data_wrapper f on f.oid=s.srvfdw
-            left join pg_description d
-                on d.classoid = s.tableoid
-                and d.objoid = s.oid and d.objsubid = 0
-            """)
+        return Database.query_asjson(servers_sql)
 
     @api.secure
     @nsfpc.expect(foreignpc_server_model)
@@ -134,11 +137,24 @@ class ForeignTable(Resource):
         Create a foreign table
         '''
         payload = defaultpayload(api.payload)
-        # create foreign table for schema
+
         if len(payload['table'].split('.')) != 2:
             api.abort(404, 'table should be in the form schema.table')
 
         schema, tablename = payload['table'].split('.')
+
+        for server in Database.query_asdict(servers_sql):
+            if payload['server'] == server['name']:
+                break
+        else:
+            api.abort(404, 'no server {}'.format(payload['server']))
+
+        if server['driver'] == 'fdwli3ds.Rosbag':
+            if 'topic' not in payload.get('options', {}):
+                api.abort(404, '"topic" option required for Rosbag')
+            schema_options = ", topic '{}'".format(payload['options']['topic'])
+        else:
+            schema_options = ''
 
         options = '\n'.join([
             ", {} '{}'".format(key, val)
@@ -148,15 +164,19 @@ class ForeignTable(Resource):
         payload.update(
             schema=schema,
             tablename=tablename,
-            options=options)
+            options=options,
+            schema_options=schema_options)
 
         pcid = Database.query_asdict(
             """
             create foreign table {schema}.{tablename}_schema (
                 schema text
             )
-            server {server} options (metadata 'true');
-
+            server {server}
+                options (
+                    metadata 'true'
+                    {schema_options}
+                );
             with tmp as (
                 select coalesce(max(pcid) + 1, 1) as newid from pointcloud_formats
             )
