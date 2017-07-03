@@ -158,7 +158,7 @@ class ForeignTable(Resource):
             server {server} options (metadata 'true');
 
             with tmp as (
-                select coalesce(max(pcid) + 1, 0) as newid from pointcloud_formats
+                select coalesce(max(pcid) + 1, 1) as newid from pointcloud_formats
             )
             insert into pointcloud_formats(pcid, srid, schema)
             select tmp.newid, %(srid)s, schema from {schema}.{tablename}_schema, tmp
