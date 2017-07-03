@@ -7,5 +7,4 @@ flask:
     pg_user: li3ds
     pg_password: li3ds
     SWAGGER_UI_DOC_EXPANSION: none
-    SWAGGER_UI_JSONEDITOR: True
     HEADER_API_KEY: li3dsli3dsli3dsli3dsli3dsli3ds
