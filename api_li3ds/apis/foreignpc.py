@@ -217,7 +217,7 @@ class ForeignSchema(Resource):
         pcid = Database.query_asdict("""
             create schema if not exists "{schema}";
 
-            select coalesce(max(pcid) + 1, 0) as pcid from pointcloud_formats
+            select coalesce(max(pcid) + 1, 1) as pcid from pointcloud_formats
         """.format(**api.payload))[0]['pcid']
 
         req = """
