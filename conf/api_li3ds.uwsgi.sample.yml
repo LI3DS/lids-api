@@ -8,4 +8,4 @@ uwsgi:
     protocol: http
     need-app: true
     catch: exceptions=true
-    env: API_LI3DS_SETTINGS=/home/user/api_li3ds/conf/api_li3ds.yml
+    env: API_LI3DS_SETTINGS=/home/user/api-li3ds/conf/api_li3ds.yml
