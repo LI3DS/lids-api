@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from flask import request
 from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
@@ -41,9 +42,21 @@ processing_model = nsds.inherit('Processing Model', processing_model_post, {
 class Datasources(Resource):
 
     @nsds.marshal_with(datasource_model)
+    @nsds.param('uri', description='uri', type='string')
+    @nsds.param('referential', description='referential')
+    @nsds.param('session', description='session')
     def get(self):
         '''Get all datasources'''
-        return Database.query_asjson("select * from li3ds.datasource")
+        cond = []
+        args = []
+        for param in ('uri', 'referential', 'session'):
+            if param in request.args:
+                cond.append(param + ' = %s')
+                args.append(request.args[param])
+        q = 'select * from li3ds.datasource'
+        if cond:
+            q += ' where ' + ' AND '.join(cond)
+        return Database.query_asjson(q, args)
 
     @api.secure
     @nsds.expect(datasource_model_post)
