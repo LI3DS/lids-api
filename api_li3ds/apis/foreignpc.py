@@ -118,7 +118,9 @@ class ForeignServers(Resource):
 
         Database.rowcount(req)
 
-        return "foreign server created", 201
+        req = servers_sql + ' where srvname = %(name)s'
+
+        return Database.query_asjson(req, defaultpayload(api.payload)), 201
 
 
 @nsfpc.route('/tables/', endpoint='foreigntable')
