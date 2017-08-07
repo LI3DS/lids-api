@@ -72,7 +72,7 @@ servers_sql = """
 """
 
 
-@nsfpc.route('/drivers', endpoint='foreigndrivers')
+@nsfpc.route('/drivers/', endpoint='foreigndrivers')
 class ForeignDrivers(Resource):
 
     def get(self):
@@ -83,7 +83,7 @@ class ForeignDrivers(Resource):
         return drivers.strip('NOTICE: \n').split(',')
 
 
-@nsfpc.route('/servers', endpoint='foreignservers')
+@nsfpc.route('/servers/', endpoint='foreignservers')
 class ForeignServers(Resource):
 
     def get(self):
@@ -125,7 +125,7 @@ class ForeignServers(Resource):
         return "foreign server created", 201
 
 
-@nsfpc.route('/table', endpoint='foreigntable')
+@nsfpc.route('/tables/', endpoint='foreigntable')
 class ForeignTable(Resource):
 
     @api.secure
