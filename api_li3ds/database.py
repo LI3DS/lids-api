@@ -4,11 +4,11 @@ from functools import wraps
 
 from psycopg2 import connect
 from psycopg2.extras import NamedTupleCursor, Json, register_default_jsonb
-from psycopg2 import Error as PsycoError
+from psycopg2 import Error as PsycoError, IntegrityError as PsycoIntegrityError
 from psycopg2.extensions import register_adapter
 
 from flask import current_app
-from flask_restplus import abort
+import flask_restplus
 
 # adapt python dict to postgresql json type
 register_adapter(dict, Json)
@@ -17,18 +17,22 @@ register_adapter(dict, Json)
 register_default_jsonb()
 
 
+def abort(exc, status_code):
+    current_app.logger.error(exc.pgerror or exc.args)
+    msg = '{} - {}'.format(exc.diag.message_detail, exc.diag.message_primary) if \
+          current_app.debug else 'Database Error'
+    return flask_restplus.abort(status_code, msg)
+
+
 def pgexceptions(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except PsycoIntegrityError as exc:
+            return abort(exc, 404)
         except PsycoError as exc:
-            current_app.logger.error(exc.pgerror or exc.args)
-            if current_app.debug:
-                msg = '{} - {}'.format(exc.diag.message_detail, exc.diag.message_primary)
-                return abort(404, msg)
-            return abort(404, 'Database Error')
-        return func(*args, **kwargs)
+            return abort(exc, 400)
     return decorated
 
 
