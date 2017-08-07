@@ -53,7 +53,8 @@ multicorn_drivers_sql = """
 
 servers_sql = """
     select
-        s.srvname as "name"
+        s.srvname as id
+        , s.srvname as "name"
         , coalesce(
             (select option_value
              from pg_options_to_table(srvoptions)
