@@ -65,10 +65,6 @@ servers_sql = """
              where option_name != 'wrapper'), '{}'::jsonb)
           as "options"
     from pg_catalog.pg_foreign_server s
-        join pg_catalog.pg_foreign_data_wrapper f on f.oid=s.srvfdw
-    left join pg_description d
-        on d.classoid = s.tableoid
-        and d.objoid = s.oid and d.objsubid = 0
 """
 
 
