@@ -54,18 +54,16 @@ multicorn_drivers_sql = """
 servers_sql = """
     select
         s.srvname as "name"
-        , case when srvoptions is null
-            then '' else (
-            select option_value
-            from pg_options_to_table(srvoptions)
-            where option_name = 'wrapper')
-          end as "driver"
-        , case when srvoptions is null
-            then to_jsonb(''::text) else (
-            select jsonb_object_agg(option_name, option_value)
-            from pg_options_to_table(srvoptions)
-            where option_name != 'wrapper')
-          end as "options"
+        , coalesce(
+            (select option_value
+             from pg_options_to_table(srvoptions)
+             where option_name = 'wrapper'), '')
+          as "driver"
+        , coalesce(
+            (select jsonb_object_agg(option_name, option_value)
+             from pg_options_to_table(srvoptions)
+             where option_name != 'wrapper'), '{}'::jsonb)
+          as "options"
     from pg_catalog.pg_foreign_server s
         join pg_catalog.pg_foreign_data_wrapper f on f.oid=s.srvfdw
     left join pg_description d
