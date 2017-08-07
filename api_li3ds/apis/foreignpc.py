@@ -215,7 +215,11 @@ class ForeignTable(Resource):
                 )
             """.format(**payload)
         )
-        return "foreign table created", 201
+
+        req = tables_sql + ' where c.relname = %(tablename)s and s.srvname = %(server)s' \
+                           ' and n.nspname = %(schema)s'
+
+        return Database.query_asjson(req, payload), 201
 
 
 @nsfpc.route('/schema', endpoint='foreignschema')
