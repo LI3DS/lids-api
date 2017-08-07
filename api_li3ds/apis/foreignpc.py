@@ -68,6 +68,17 @@ servers_sql = """
 """
 
 
+tables_sql = """
+    select
+        n.nspname || '.' || c.relname as table
+        , s.srvname as server
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_foreign_table t on t.ftrelid=c.oid
+    join pg_catalog.pg_foreign_server s on s.oid=t.ftserver
+    join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+"""
+
+
 @nsfpc.route('/drivers/', endpoint='foreigndrivers')
 class ForeignDrivers(Resource):
 
@@ -125,6 +136,12 @@ class ForeignServers(Resource):
 
 @nsfpc.route('/tables/', endpoint='foreigntable')
 class ForeignTable(Resource):
+
+    def get(self):
+        '''
+        Retrieve foreign table list
+        '''
+        return Database.query_asjson(tables_sql)
 
     @api.secure
     @nsfpc.expect(foreignpc_table_model)
