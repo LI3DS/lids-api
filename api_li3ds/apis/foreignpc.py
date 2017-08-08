@@ -3,6 +3,7 @@ from flask_restplus import fields
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
+from api_li3ds.exc import abort
 
 
 nsfpc = api.namespace(
@@ -110,7 +111,7 @@ class ForeignServers(Resource):
         drivers = drivers.strip('NOTICE: \n').split(',')
 
         if api.payload['driver'] not in drivers:
-            return api.abort(
+            return abort(
                 404,
                 '{} driver does not exist, available drivers are {}'
                 .format(api.payload['driver'], drivers))
@@ -153,7 +154,7 @@ class ForeignTable(Resource):
         payload = defaultpayload(api.payload)
 
         if len(payload['table'].split('.')) != 2:
-            api.abort(404, 'table should be in the form schema.table')
+            abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
 
         schema, tablename = payload['table'].split('.')
 
@@ -161,11 +162,11 @@ class ForeignTable(Resource):
             if payload['server'] == server['name']:
                 break
         else:
-            api.abort(404, 'no server {}'.format(payload['server']))
+            abort(404, 'no server {}'.format(payload['server']))
 
         if server['driver'] == 'fdwli3ds.Rosbag':
             if 'topic' not in payload.get('options', {}):
-                api.abort(404, '"topic" option required for Rosbag')
+                abort(404, '"topic" option required for Rosbag')
             schema_options = ", topic '{}'".format(payload['options']['topic'])
         else:
             schema_options = ''
