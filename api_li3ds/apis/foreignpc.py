@@ -212,7 +212,7 @@ class ForeignTable(Resource):
         Database.rowcount(req)
 
         options = payload['options']
-        options.update(pcid_str=str(pcid))
+        options.update(pcid=str(pcid))
         options = {k: str(v) for k, v in options.items()}
 
         options_sql = sql.SQL(', ').join([
