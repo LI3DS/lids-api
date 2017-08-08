@@ -238,7 +238,6 @@ class ForeignTable(Resource):
                            ' and n.nspname = %(schema)s'
 
         parameters = {'schema': schema, 'tablename': tablename, 'server': payload['server']}
-        print(parameters)
 
         return Database.query_asjson(req, parameters), 201
 
