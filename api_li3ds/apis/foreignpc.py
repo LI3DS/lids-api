@@ -251,24 +251,24 @@ class ForeignSchema(Resource):
         '''
         Import foreign schema for a rosbag file
         '''
-        # FIXME modify this to use psycopg2.sql.SQL (as in ForeignServer and ForeignTable)
-        pcid = Database.query_asdict("""
-            create schema if not exists "{schema}";
 
+        req = sql.SQL("""
+            create schema if not exists {schema};
             select coalesce(max(pcid) + 1, 1) as pcid from pointcloud_formats
-        """.format(**api.payload))[0]['pcid']
+        """).format(schema=sql.Identifier(api.payload['schema']))
+        pcid = Database.query_asdict(req)[0]['pcid']
 
-        req = """
-            import foreign schema "{rosbag}" limit to (pointcloud_formats)
-            from server {server} into "{schema}" options (pcid '{pcid}');
+        identifiers = {k: sql.Identifier(v) for k, v in api.payload.items()}
+        req = sql.SQL("""
+            import foreign schema {rosbag} limit to (pointcloud_formats)
+            from server {server} into {schema} options (pcid %(pcid)s);
 
             insert into pointcloud_formats select pcid, srid, schema
-            from "{schema}".pointcloud_formats;
+            from {schema}.pointcloud_formats;
 
-            import foreign schema "{rosbag}" except (pointcloud_formats)
-            from server {server} into "{schema}" options (pcid '{pcid}')
-        """.format(pcid=pcid, **api.payload)
-
-        Database.rowcount(req)
+            import foreign schema {rosbag} except (pointcloud_formats)
+            from server {server} into {schema} options (pcid %(pcid)s)
+        """).format(**identifiers)
+        Database.rowcount(req, {'pcid': str(pcid)})
 
         return "foreign schema imported", 201
