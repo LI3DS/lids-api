@@ -112,7 +112,7 @@ class ForeignServers(Resource):
         if api.payload['driver'] not in drivers:
             return api.abort(
                 404,
-                '{} driver does not exists, available drivers are {}'
+                '{} driver does not exist, available drivers are {}'
                 .format(api.payload['driver'], drivers))
 
         api.payload.update(
