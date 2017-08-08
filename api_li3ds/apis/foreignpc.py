@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask_restplus import fields
+from psycopg2 import sql
 
 from api_li3ds.app import api, Resource, defaultpayload
 from api_li3ds.database import Database
@@ -116,24 +117,26 @@ class ForeignServers(Resource):
                 '{} driver does not exist, available drivers are {}'
                 .format(api.payload['driver'], drivers))
 
-        api.payload.update(
-            options='\n'.join([
-                ", {} '{}'".format(key, val)
-                for key, val in api.payload['options'].items()
-            ])
-        )
-        req = """
+        options = api.payload['options']
+        options.update(wrapper=api.payload['driver'])
+        options = {k: str(v) for k, v in options.items()}
+
+        options_sql = sql.SQL(', ').join([
+            sql.SQL(' ').join((sql.Identifier(opt), sql.Placeholder(opt)))
+            for opt in options
+        ])
+
+        req = sql.SQL("""
             create server {name} foreign data wrapper multicorn options (
-                wrapper '{driver}'
                 {options}
             );
-            """.format(**api.payload)
+        """).format(name=sql.Identifier(api.payload['name']), options=options_sql)
 
-        Database.rowcount(req)
+        Database.rowcount(req, options)
 
         req = servers_sql + ' where srvname = %(name)s'
 
-        return Database.query_asjson(req, defaultpayload(api.payload)), 201
+        return Database.query_asjson(req, api.payload), 201
 
 
 @nsfpc.route('/tables/', endpoint='foreigntable')
@@ -156,8 +159,6 @@ class ForeignTable(Resource):
         if len(payload['table'].split('.')) != 2:
             abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
 
-        schema, tablename = payload['table'].split('.')
-
         for server in Database.query_asdict(servers_sql):
             if payload['server'] == server['name']:
                 break
@@ -167,61 +168,79 @@ class ForeignTable(Resource):
         if server['driver'] == 'fdwli3ds.Rosbag':
             if 'topic' not in payload.get('options', {}):
                 abort(404, '"topic" option required for Rosbag')
-            schema_options = ", topic '{}'".format(payload['options']['topic'])
-        else:
-            schema_options = ''
 
-        options = '\n'.join([
-            ", {} '{}'".format(key, val)
-            for key, val in payload.get('options', {}).items()
+        schema, tablename = payload['table'].split('.')
+
+        server_identifier = sql.Identifier(payload['server'])
+        schema_identifier = sql.Identifier(schema)
+        table_identifier = sql.Identifier(tablename)
+        table_schema_identifier = sql.Identifier(tablename + '_schema')
+
+        schema_options = {'metadata': 'true'}
+        if server['driver'] == 'fdwli3ds.Rosbag':
+            schema_options.update(topic=payload['options']['topic'])
+        schema_options = {k: str(v) for k, v in schema_options.items()}
+
+        schema_options_sql = sql.SQL(',').join([
+            sql.SQL(' ').join((sql.Identifier(opt), sql.Placeholder(opt)))
+            for opt in schema_options
         ])
 
-        payload.update(
-            schema=schema,
-            tablename=tablename,
-            options=options,
-            schema_options=schema_options)
-
-        pcid = Database.query_asdict(
-            """
-            create foreign table {schema}.{tablename}_schema (
+        req = sql.SQL("""
+            create foreign table {schema}.{table_schema} (
                 schema text
             )
-            server {server}
-                options (
-                    metadata 'true'
-                    {schema_options}
-                );
+            server {server} options (
+                {options}
+            );
             with tmp as (
                 select coalesce(max(pcid) + 1, 1) as newid from pointcloud_formats
             )
             insert into pointcloud_formats(pcid, srid, schema)
-            select tmp.newid, %(srid)s, schema from {schema}.{tablename}_schema, tmp
+            select tmp.newid, %(srid)s, schema from {schema}.{table_schema}, tmp
             returning pcid
-            """
-            .format(**payload), (payload))[0]['pcid']
+        """).format(schema=schema_identifier, table_schema=table_schema_identifier,
+                    server=server_identifier, options=schema_options_sql)
 
-        Database.rowcount(
-            "drop foreign table {schema}.{tablename}_schema"
-            .format(**payload))
+        parameters = {'srid': payload['srid']}
+        parameters.update(schema_options)
+        pcid = Database.query_asdict(req, parameters)[0]['pcid']
 
-        payload.update(pcid=pcid)
+        req = sql.SQL("drop foreign table {schema}.{table_schema}").format(
+                schema=schema_identifier, table_schema=table_schema_identifier)
 
-        Database.rowcount("""
-            create foreign table {schema}.{tablename} (
-                points pcpatch({pcid})
+        Database.rowcount(req)
+
+        options = payload['options']
+        options.update(pcid_str=str(pcid))
+        options = {k: str(v) for k, v in options.items()}
+
+        options_sql = sql.SQL(', ').join([
+            sql.SQL(' ').join((sql.Identifier(opt), sql.Placeholder(opt)))
+            for opt in options
+        ])
+
+        req = sql.SQL("""
+            create foreign table {schema}.{table} (
+                points pcpatch(%(pcid_int)s)
             ) server {server}
                 options (
-                    pcid '{pcid}'
                     {options}
                 )
-            """.format(**payload)
-        )
+        """).format(schema=schema_identifier, table=table_identifier,
+                    server=server_identifier, options=options_sql)
+
+        parameters = {'pcid': str(pcid), 'pcid_int': pcid}
+        parameters.update(options)
+        Database.rowcount(req, parameters)
 
         req = tables_sql + ' where c.relname = %(tablename)s and s.srvname = %(server)s' \
                            ' and n.nspname = %(schema)s'
 
-        return Database.query_asjson(req, payload), 201
+        parameters = {'schema': schema, 'tablename': tablename, 'server': payload['server']}
+        print(parameters)
+
+        return Database.query_asjson(req, parameters), 201
 
 
 @nsfpc.route('/schema', endpoint='foreignschema')
@@ -233,6 +252,7 @@ class ForeignSchema(Resource):
         '''
         Import foreign schema for a rosbag file
         '''
+        # FIXME modify this to use psycopg2.sql.SQL (as in ForeignServer and ForeignTable)
         pcid = Database.query_asdict("""
             create schema if not exists "{schema}";
 
@@ -249,6 +269,7 @@ class ForeignSchema(Resource):
             import foreign schema "{rosbag}" except (pointcloud_formats)
             from server {server} into "{schema}" options (pcid '{pcid}')
         """.format(pcid=pcid, **api.payload)
+
         Database.rowcount(req)
 
         return "foreign schema imported", 201

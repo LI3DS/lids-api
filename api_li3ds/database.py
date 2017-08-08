@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from itertools import chain
-from psycopg2 import connect
+from psycopg2 import connect, sql
 from psycopg2.extras import NamedTupleCursor, Json, register_default_jsonb
 from psycopg2.extensions import register_adapter
 
@@ -27,9 +27,12 @@ class Database():
         '''
         cur = cls.db.cursor()
         cur.execute(query, parameters)
+
+        query_str = query.as_string(cur) if isinstance(query, sql.Composable) else query
         current_app.logger.debug(
-            'query: {}, rowncount: {}'.format(query, cur.rowcount)
+            'query: {}, rowncount: {}'.format(query_str, cur.rowcount)
         )
+
         if rowcount:
             yield cur.rowcount
             return
