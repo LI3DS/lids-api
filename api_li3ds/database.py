@@ -1,39 +1,17 @@
 # -*- coding: utf-8 -*-
 from itertools import chain
-from functools import wraps
-
-from psycopg2 import connect
+from psycopg2 import connect, sql
 from psycopg2.extras import NamedTupleCursor, Json, register_default_jsonb
-from psycopg2 import Error as PsycoError, IntegrityError as PsycoIntegrityError
 from psycopg2.extensions import register_adapter
 
 from flask import current_app
-import flask_restplus
+
 
 # adapt python dict to postgresql json type
 register_adapter(dict, Json)
 
 # register the jsonb type
 register_default_jsonb()
-
-
-def abort(exc, status_code):
-    current_app.logger.error(exc.pgerror or exc.args)
-    msg = '{} - {}'.format(exc.diag.message_detail, exc.diag.message_primary) if \
-          current_app.debug else 'Database Error'
-    return flask_restplus.abort(status_code, msg)
-
-
-def pgexceptions(func):
-    @wraps(func)
-    def decorated(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except PsycoIntegrityError as exc:
-            return abort(exc, 404)
-        except PsycoError as exc:
-            return abort(exc, 400)
-    return decorated
 
 
 class Database():
@@ -49,9 +27,12 @@ class Database():
         '''
         cur = cls.db.cursor()
         cur.execute(query, parameters)
+
+        query_str = query.as_string(cur) if isinstance(query, sql.Composable) else query
         current_app.logger.debug(
-            'query: {}, rowncount: {}'.format(query, cur.rowcount)
+            'query: {}, rowncount: {}'.format(query_str, cur.rowcount)
         )
+
         if rowcount:
             yield cur.rowcount
             return

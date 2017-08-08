@@ -5,7 +5,7 @@ from collections import defaultdict
 from flask import request, current_app
 from flask_restplus import Api, Resource as OrigResource
 
-from api_li3ds.database import pgexceptions
+from api_li3ds.exc import pgexceptions
 
 HEADER_API_KEY = 'X-API-KEY'
 

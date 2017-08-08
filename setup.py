@@ -8,7 +8,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 requirements = (
     'flask==0.11.1',
     'flask-restplus==0.10.0',
-    'psycopg2==2.6.2',
+    'psycopg2==2.7.3',
     'pyyaml',
     'graphviz>=0.5.1'
 )
