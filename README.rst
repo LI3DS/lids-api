@@ -5,6 +5,8 @@ LI3DS API
 
 Api for accessing metadata of a li3ds datastore.
 
+Ensure you have ``graphviz`` and ``python3-dev`` as system dependencies
+
 * Create your virtualenv
 * Install dependencies (dev)::
 
