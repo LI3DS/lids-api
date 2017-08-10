@@ -38,6 +38,12 @@ foreignpc_schema_model = nsfpc.model(
         'server': fields.String(required=True)
     })
 
+foreignpc_view_model = nsfpc.model(
+    'foreign view creation',
+    {
+        'view': fields.String(required=True),
+        'table': fields.String(required=True)
+    })
 
 multicorn_drivers_sql = """
     do $$
@@ -79,6 +85,14 @@ tables_sql = """
     join pg_catalog.pg_foreign_table t on t.ftrelid=c.oid
     join pg_catalog.pg_foreign_server s on s.oid=t.ftserver
     join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+"""
+
+
+views_sql = """
+    select
+        v.schemaname || '.' || v.matviewname as view
+        , v.definition as definition
+    from pg_catalog.pg_matviews v
 """
 
 
@@ -276,3 +290,47 @@ class ForeignSchema(Resource):
         Database.rowcount(req, {'pcid': str(pcid)})
 
         return "foreign schema imported", 201
+
+
+@nsfpc.route('/views/', endpoint='foreignview')
+class ForeignViews(Resource):
+
+    def get(self):
+        '''
+        Retrieve foreign view list
+        '''
+        return Database.query_asjson(views_sql)
+
+    @api.secure
+    @nsfpc.expect(foreignpc_view_model)
+    def post(self):
+        '''
+        Create a materialized view
+        '''
+        payload = defaultpayload(api.payload)
+
+        view_parts = payload['view'].split('.')
+        if len(view_parts) != 2:
+            abort(404, 'view should be in the form schema.view ({view})'.format(**payload))
+        view_schema, view = view_parts
+
+        table_parts = payload['table'].split('.')
+        if len(table_parts) != 2:
+            abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
+        table_schema, table = table_parts
+
+        identifiers = map(sql.Identifier, (view_schema, view, table_schema, table))
+        identifiers = zip(('view_schema', 'view', 'table_schema', 'table'), identifiers)
+        identifiers = dict(identifiers)
+
+        req = sql.SQL("""
+            create materialized view {view_schema}.{view}
+            as select * from {table_schema}.{table}
+        """).format(**identifiers)
+
+        Database.rowcount(req)
+
+        req = views_sql + ' where v.schemaname = %(view_schema)s and v.matviewname = %(view)s'
+        parameters = {'view_schema': view_schema, 'view': view}
+
+        return Database.query_asjson(req, parameters), 201
