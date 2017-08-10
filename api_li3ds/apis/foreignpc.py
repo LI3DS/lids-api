@@ -18,7 +18,7 @@ foreignpc_table_model = nsfpc.model(
         'table': fields.String(required=True),
         'server': fields.String(required=True),
         'options': fields.Raw(),
-        'srid': fields.Integer(required=False, default=0)
+        'srid': fields.Integer(required=True, default=0)
     })
 
 
