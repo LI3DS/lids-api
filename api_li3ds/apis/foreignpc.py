@@ -165,9 +165,18 @@ class ForeignTable(Resource):
         else:
             abort(404, 'no server {}'.format(payload['server']))
 
+        schema_options = {'metadata': 'true'}
+
         if server['driver'] == 'fdwli3ds.Rosbag':
             if 'topic' not in payload.get('options', {}):
                 abort(404, '"topic" option required for Rosbag')
+            schema_options.update(topic=payload['options']['topic'])
+        elif server['driver'] == 'fdwli3ds.EchoPulse':
+            if 'directory' not in payload.get('options', {}):
+                abort(404, '"topic" option required for Rosbag')
+            schema_options.update(directory=payload['options']['directory'])
+
+        schema_options = {k: str(v) for k, v in schema_options.items()}
 
         schema, tablename = payload['table'].split('.')
 
@@ -175,11 +184,6 @@ class ForeignTable(Resource):
         schema_identifier = sql.Identifier(schema)
         table_identifier = sql.Identifier(tablename)
         table_schema_identifier = sql.Identifier(tablename + '_schema')
-
-        schema_options = {'metadata': 'true'}
-        if server['driver'] == 'fdwli3ds.Rosbag':
-            schema_options.update(topic=payload['options']['topic'])
-        schema_options = {k: str(v) for k, v in schema_options.items()}
 
         schema_options_sql = sql.SQL(',').join([
             sql.SQL(' ').join((sql.Identifier(opt), sql.Placeholder(opt)))
