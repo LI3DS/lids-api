@@ -79,7 +79,8 @@ servers_sql = """
 
 tables_sql = """
     select
-        n.nspname || '.' || c.relname as table
+        n.nspname || '.' || c.relname as id
+        , n.nspname || '.' || c.relname as table
         , s.srvname as server
     from pg_catalog.pg_class c
     join pg_catalog.pg_foreign_table t on t.ftrelid=c.oid
