@@ -42,7 +42,8 @@ foreignpc_view_model = nsfpc.model(
     'foreign view creation',
     {
         'view': fields.String(required=True),
-        'table': fields.String(required=True)
+        'table': fields.String(required=True),
+        'sbet': fields.Boolean
     })
 
 multicorn_drivers_sql = """
@@ -94,6 +95,72 @@ views_sql = """
         v.schemaname || '.' || v.matviewname as view
         , v.definition as definition
     from pg_catalog.pg_matviews v
+"""
+
+schema_quat = """
+<?xml version="1.0" encoding="UTF-8"?>
+<pc:PointCloudSchema xmlns:pc="http://pointcloud.org/schemas/PC/1.1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<pc:dimension>
+    <pc:position>1</pc:position>
+    <pc:size>8</pc:size>
+    <pc:name>qw</pc:name>
+    <pc:description>quaternion w</pc:description>
+    <pc:interpretation>double</pc:interpretation>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>2</pc:position>
+    <pc:size>8</pc:size>
+    <pc:name>qx</pc:name>
+    <pc:description>quaternion x</pc:description>
+    <pc:interpretation>double</pc:interpretation>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>3</pc:position>
+    <pc:size>8</pc:size>
+    <pc:name>qy</pc:name>
+    <pc:description>quaternion y</pc:description>
+    <pc:interpretation>double</pc:interpretation>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>4</pc:position>
+    <pc:size>8</pc:size>
+    <pc:name>qz</pc:name>
+    <pc:description>quaternion z</pc:description>
+    <pc:interpretation>double</pc:interpretation>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>5</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>x</pc:name>
+    <pc:description>longitude</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.0000001</pc:scale>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>6</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>y</pc:name>
+    <pc:description>latitude</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.0000001</pc:scale>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>7</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>z</pc:name>
+    <pc:description>height in meters</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.01</pc:scale>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>8</pc:position>
+    <pc:size>8</pc:size>
+    <pc:name>time</pc:name>
+    <pc:description>seconds of week in GPS time system</pc:description>
+    <pc:interpretation>double</pc:interpretation>
+</pc:dimension>
+</pc:PointCloudSchema>
 """
 
 
@@ -320,16 +387,63 @@ class ForeignViews(Resource):
             abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
         table_schema, table = table_parts
 
+        if payload['sbet']:
+            req = '''
+                select pcid from pointcloud_formats where schema = %(schema_quat)s
+            '''
+            res = Database.query_asdict(req, {'schema_quat': schema_quat})
+            if not res:
+                req = '''
+                    with tmp as (
+                        select coalesce(max(pcid) + 1, 1) as newid from pointcloud_formats
+                    )
+                    insert into pointcloud_formats(pcid, srid, schema)
+                    select tmp.newid, 0, %(schema_quat)s from tmp
+                    returning pcid
+                '''
+                res = Database.query_asdict(req, {'schema_quat': schema_quat})
+            pcid = res[0]['pcid']
+
+            select = '''
+                with param as (
+                    select cos(pc_get(point, 'm_plateformHeading') * 0.5) as t0,
+                           sin(pc_get(point, 'm_plateformHeading') * 0.5) as t1,
+                           cos(pc_get(point, 'm_roll') * 0.5) as t2,
+                           sin(pc_get(point, 'm_roll') * 0.5) as t3,
+                           cos(pc_get(point, 'm_pitch') * 0.5) as t4,
+                           sin(pc_get(point, 'm_pitch') * 0.5) as t5,
+                           pc_get(point, 'x') as x,
+                           pc_get(point, 'y') as y,
+                           pc_get(point, 'z') as z,
+                           pc_get(point, 'm_time') as time
+                    from (select pc_explode(points) as point from {table_schema}.{table}) _
+                ),
+                point as (
+                    select pc_makepoint(%(pcid)s,
+                                        ARRAY[
+                                            t0 * t2 * t4 + t1 * t3 * t5,
+                                            t0 * t3 * t4 - t1 * t2 * t5,
+                                            t0 * t2 * t5 + t1 * t3 * t4,
+                                            t1 * t2 * t4 - t0 * t3 * t5,
+                                            x, y, z, time
+                                        ]) as pt,
+                           row_number() over () as id
+                    from param
+                )
+                select pc_patch(pt)::pcpatch(%(pcid)s) as points from point group by (id-1)/100
+            '''
+
+            parameters = {'pcid': pcid}
+        else:
+            select = 'select * from {table_schema}.{table}'
+            parameters = {}
+
         identifiers = map(sql.Identifier, (view_schema, view, table_schema, table))
         identifiers = zip(('view_schema', 'view', 'table_schema', 'table'), identifiers)
         identifiers = dict(identifiers)
-
-        req = sql.SQL("""
-            create materialized view {view_schema}.{view}
-            as select * from {table_schema}.{table}
-        """).format(**identifiers)
-
-        Database.rowcount(req)
+        req = sql.SQL('create materialized view {view_schema}.{view} as ' + select) \
+            .format(**identifiers)
+        Database.rowcount(req, parameters)
 
         req = views_sql + ' where v.schemaname = %(view_schema)s and v.matviewname = %(view)s'
         parameters = {'view_schema': view_schema, 'view': view}
