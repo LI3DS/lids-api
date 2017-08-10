@@ -428,22 +428,30 @@ class ForeignViews(Resource):
                                             t1 * t2 * t4 - t0 * t3 * t5,
                                             x, y, z, time
                                         ]) as pt,
-                           row_number() over () as id
+                           row_number() over () as _id
                     from param
                 )
-                select pc_patch(pt)::pcpatch(%(pcid)s) as points from point group by (id-1)/100
+                select (_id-1)/100 as id, pc_patch(pt)::pcpatch(%(pcid)s) as points from point
+                group by id order by id
             '''
 
             parameters = {'pcid': pcid}
         else:
-            select = 'select * from {table_schema}.{table}'
+            select = '''
+                select _id-1 as id, points from (
+                    select row_number() over () as _id, points from {table_schema}.{table}
+                ) _ order by id
+            '''
             parameters = {}
 
         identifiers = map(sql.Identifier, (view_schema, view, table_schema, table))
         identifiers = zip(('view_schema', 'view', 'table_schema', 'table'), identifiers)
         identifiers = dict(identifiers)
-        req = sql.SQL('create materialized view {view_schema}.{view} as ' + select) \
-            .format(**identifiers)
+
+        req = sql.SQL('''
+            create materialized view {view_schema}.{view} as %s;
+            create unique index on {view_schema}.{view} (id)
+        ''' % select).format(**identifiers)
         Database.rowcount(req, parameters)
 
         req = views_sql + ' where v.schemaname = %(view_schema)s and v.matviewname = %(view)s'
