@@ -328,7 +328,7 @@ class ForeignTable(Resource):
         return Database.query_asjson(req, parameters), 201
 
 
-@nsfpc.route('/schema', endpoint='foreignschema')
+@nsfpc.route('/schema/', endpoint='foreignschema')
 class ForeignSchema(Resource):
 
     @api.secure
