@@ -195,7 +195,7 @@ class ForeignServers(Resource):
 
         if api.payload['driver'] not in drivers:
             return abort(
-                404,
+                400,
                 '{} driver does not exist, available drivers are {}'
                 .format(api.payload['driver'], drivers))
 
@@ -237,25 +237,26 @@ class ForeignTable(Resource):
         Create a foreign table
         '''
         payload = defaultpayload(api.payload)
+        print(payload)
 
         if len(payload['table'].split('.')) != 2:
-            abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
+            abort(400, 'table should be in the form schema.table ({table})'.format(**payload))
 
         for server in Database.query_asdict(servers_sql):
             if payload['server'] == server['name']:
                 break
         else:
-            abort(404, 'no server {}'.format(payload['server']))
+            abort(400, 'no server {}'.format(payload['server']))
 
         schema_options = {'metadata': 'true'}
 
         if server['driver'] == 'fdwli3ds.Rosbag':
             if 'topic' not in payload.get('options', {}):
-                abort(404, '"topic" option required for Rosbag')
+                abort(400, '"topic" option required for Rosbag')
             schema_options.update(topic=payload['options']['topic'])
         elif server['driver'] == 'fdwli3ds.EchoPulse':
             if 'directory' not in payload.get('options', {}):
-                abort(404, '"topic" option required for Rosbag')
+                abort(400, '"topic" option required for Rosbag')
             schema_options.update(directory=payload['options']['directory'])
 
         schema_options = {k: str(v) for k, v in schema_options.items()}
@@ -379,12 +380,12 @@ class ForeignViews(Resource):
 
         view_parts = payload['view'].split('.')
         if len(view_parts) != 2:
-            abort(404, 'view should be in the form schema.view ({view})'.format(**payload))
+            abort(400, 'view should be in the form schema.view ({view})'.format(**payload))
         view_schema, view = view_parts
 
         table_parts = payload['table'].split('.')
         if len(table_parts) != 2:
-            abort(404, 'table should be in the form schema.table ({table})'.format(**payload))
+            abort(400, 'table should be in the form schema.table ({table})'.format(**payload))
         table_schema, table = table_parts
 
         if payload['sbet']:
