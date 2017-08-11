@@ -43,7 +43,8 @@ foreignpc_view_model = nsfpc.model(
     {
         'view': fields.String(required=True),
         'table': fields.String(required=True),
-        'sbet': fields.Boolean
+        'sbet': fields.Boolean,
+        'srid': fields.Integer
     })
 
 multicorn_drivers_sql = """
@@ -97,8 +98,7 @@ views_sql = """
     from pg_catalog.pg_matviews v
 """
 
-schema_quat = """
-<?xml version="1.0" encoding="UTF-8"?>
+_schema_quat = """<?xml version="1.0" encoding="UTF-8"?>
 <pc:PointCloudSchema xmlns:pc="http://pointcloud.org/schemas/PC/1.1"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 <pc:dimension>
@@ -129,22 +129,7 @@ schema_quat = """
     <pc:description>quaternion z</pc:description>
     <pc:interpretation>double</pc:interpretation>
 </pc:dimension>
-<pc:dimension>
-    <pc:position>5</pc:position>
-    <pc:size>4</pc:size>
-    <pc:name>x</pc:name>
-    <pc:description>longitude</pc:description>
-    <pc:interpretation>int32</pc:interpretation>
-    <pc:scale>0.0000001</pc:scale>
-</pc:dimension>
-<pc:dimension>
-    <pc:position>6</pc:position>
-    <pc:size>4</pc:size>
-    <pc:name>y</pc:name>
-    <pc:description>latitude</pc:description>
-    <pc:interpretation>int32</pc:interpretation>
-    <pc:scale>0.0000001</pc:scale>
-</pc:dimension>
+{}
 <pc:dimension>
     <pc:position>7</pc:position>
     <pc:size>4</pc:size>
@@ -160,8 +145,41 @@ schema_quat = """
     <pc:description>seconds of week in GPS time system</pc:description>
     <pc:interpretation>double</pc:interpretation>
 </pc:dimension>
-</pc:PointCloudSchema>
-"""
+</pc:PointCloudSchema>"""
+
+schema_quat_4326 = _schema_quat.format('''<pc:dimension>
+    <pc:position>5</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>x</pc:name>
+    <pc:description>longitude</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.0000001</pc:scale>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>6</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>y</pc:name>
+    <pc:description>latitude</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.0000001</pc:scale>
+</pc:dimension>''')
+
+schema_quat_projected = _schema_quat.format('''<pc:dimension>
+    <pc:position>5</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>x</pc:name>
+    <pc:description>x</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.01</pc:scale>
+</pc:dimension>
+<pc:dimension>
+    <pc:position>6</pc:position>
+    <pc:size>4</pc:size>
+    <pc:name>y</pc:name>
+    <pc:description>y</pc:description>
+    <pc:interpretation>int32</pc:interpretation>
+    <pc:scale>0.01</pc:scale>
+</pc:dimension>''')
 
 
 @nsfpc.route('/drivers/', endpoint='foreigndrivers')
@@ -388,21 +406,31 @@ class ForeignViews(Resource):
             abort(400, 'table should be in the form schema.table ({table})'.format(**payload))
         table_schema, table = table_parts
 
+        if payload['srid'] is not None:
+            if not payload['sbet']:
+                abort(400, 'srid cannot be set when sbet is not')
+            if payload['srid'] == 0:
+                abort(400, 'srid must not be 0')
+
         if payload['sbet']:
+            srid = payload['srid'] or 4326
+            schema_quat = schema_quat_4326 if srid == 4326 else schema_quat_projected
+
             req = '''
-                select pcid from pointcloud_formats where schema = %(schema_quat)s
+                select pcid from pointcloud_formats
+                where srid = %(srid)s and schema = %(schema_quat)s
             '''
-            res = Database.query_asdict(req, {'schema_quat': schema_quat})
+            res = Database.query_asdict(req, {'schema_quat': schema_quat, 'srid': srid})
             if not res:
                 req = '''
                     with tmp as (
                         select coalesce(max(pcid) + 1, 1) as newid from pointcloud_formats
                     )
                     insert into pointcloud_formats(pcid, srid, schema)
-                    select tmp.newid, 0, %(schema_quat)s from tmp
+                    select tmp.newid, %(srid)s, %(schema_quat)s from tmp
                     returning pcid
                 '''
-                res = Database.query_asdict(req, {'schema_quat': schema_quat})
+                res = Database.query_asdict(req, {'schema_quat': schema_quat, 'srid': srid})
             pcid = res[0]['pcid']
 
             select = '''
@@ -413,8 +441,11 @@ class ForeignViews(Resource):
                            sin(pc_get(point, 'm_roll') * 0.5) as t3,
                            cos(pc_get(point, 'm_pitch') * 0.5) as t4,
                            sin(pc_get(point, 'm_pitch') * 0.5) as t5,
-                           pc_get(point, 'x') as x,
-                           pc_get(point, 'y') as y,
+                           st_transform(
+                               st_setsrid(
+                                   st_makepoint(pc_get(point, 'x'), pc_get(point, 'y')),
+                                   4326),
+                                %(srid)s) as xy,
                            pc_get(point, 'z') as z,
                            pc_get(point, 'm_time') as time
                     from (select pc_explode(points) as point from {table_schema}.{table}) _
@@ -426,7 +457,7 @@ class ForeignViews(Resource):
                                             t0 * t3 * t4 - t1 * t2 * t5,
                                             t0 * t2 * t5 + t1 * t3 * t4,
                                             t1 * t2 * t4 - t0 * t3 * t5,
-                                            x, y, z, time
+                                            st_x(xy), st_y(xy), z, time
                                         ]) as pt,
                            row_number() over () as _id
                     from param
@@ -435,7 +466,7 @@ class ForeignViews(Resource):
                 group by id order by id
             '''
 
-            parameters = {'pcid': pcid}
+            parameters = {'pcid': pcid, 'srid': srid}
         else:
             select = '''
                 select _id-1 as id, points from (
