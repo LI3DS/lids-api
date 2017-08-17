@@ -485,6 +485,15 @@ class ForeignViews(Resource):
         ''' % select).format(**identifiers)
         Database.rowcount(req, parameters)
 
+        if payload['sbet']:
+            # create two indexes on pc_patchmin('time') and pc_patchmax('time'). This is
+            # to make the time interpolation operation fast
+            req = sql.SQL('''
+                create index on {view_schema}.{view} (pc_patchmin(points, 'time'));
+                create index on {view_schema}.{view} (pc_patchmax(points, 'time'))
+            ''').format(**identifiers)
+            Database.rowcount(req)
+
         req = views_sql + ' where v.schemaname = %(view_schema)s and v.matviewname = %(view)s'
         parameters = {'view_schema': view_schema, 'view': view}
 
