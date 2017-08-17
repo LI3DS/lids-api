@@ -274,7 +274,7 @@ class ForeignTable(Resource):
             schema_options.update(topic=payload['options']['topic'])
         elif server['driver'] == 'fdwli3ds.EchoPulse':
             if 'directory' not in payload.get('options', {}):
-                abort(400, '"topic" option required for Rosbag')
+                abort(400, '"directory" option required for EchoPulse')
             schema_options.update(directory=payload['options']['directory'])
 
         schema_options = {k: str(v) for k, v in schema_options.items()}
