@@ -18,6 +18,7 @@ transfo_model_post = nstf.model(
         'transfo_type': fields.Integer,
         'description': fields.String,
         'parameters': fields.List(fields.Raw),
+        'parameters_column': fields.String,
         'tdate': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_start': li3ds_fields.DateTime(dt_format='iso8601'),
         'validity_end': li3ds_fields.DateTime(dt_format='iso8601'),
@@ -66,9 +67,11 @@ class Transfo(Resource):
         return Database.query_asdict(
             """
             insert into li3ds.transfo (name, source, target, transfo_type, description,
-                                       parameters, tdate, validity_start, validity_end)
+                                       parameters, parameters_column,
+                                       tdate, validity_start, validity_end)
             values (%(name)s, %(source)s, %(target)s, %(transfo_type)s, %(description)s,
-                    %(parameters)s, %(tdate)s, %(validity_start)s, %(validity_end)s)
+                    %(parameters)s, %(parameters_column)s,
+                    %(tdate)s, %(validity_start)s, %(validity_end)s)
             returning *
             """, payload
         ), 201
