@@ -312,7 +312,7 @@ class ForeignTable(Resource):
         pcid = Database.query_asdict(req, parameters)[0]['pcid']
 
         req = sql.SQL("drop foreign table {schema}.{table_schema}").format(
-                schema=schema_identifier, table_schema=table_schema_identifier)
+            schema=schema_identifier, table_schema=table_schema_identifier)
 
         Database.rowcount(req)
 
@@ -447,8 +447,17 @@ class ForeignViews(Resource):
                                    4326),
                                 %(srid)s) as xy,
                            pc_get(point, 'z') as z,
-                           pc_get(point, 'm_time') as time
+                           extract(epoch from
+                                make_interval(weeks => (
+                                    -- compute the GPS week number
+                                    extract(days from timestamp %(filedate)s - gps.timestart) / 7)::int)
+                                    -- find the beginning of GPS week
+                                    + gps.timestart
+                                    -- add the seconds
+                                    + make_interval(secs => pc_get(point, 'm_time'))
+                                ) as time
                     from (select pc_explode(points) as point from {table_schema}.{table}) _
+                    , (select timestamp '1980-01-06 00:00:00' timestart) as gps
                 ),
                 point as (
                     select pc_makepoint(%(pcid)s,
@@ -465,8 +474,10 @@ class ForeignViews(Resource):
                 select (_id-1)/100 as id, pc_patch(pt)::pcpatch(%(pcid)s) as points from point
                 group by id order by id
             '''
-
-            parameters = {'pcid': pcid, 'srid': srid}
+            # extract date from LANDINS_20170516_075157_PP
+            filedate = payload['table'].split('_')[1]
+            filedate = '{}-{}-{}'.format(filedate[0:4], filedate[4:6], filedate[6:8])
+            parameters = {'pcid': pcid, 'srid': srid, 'filedate': filedate}
         else:
             select = '''
                 select _id-1 as id, points from (
