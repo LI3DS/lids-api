@@ -255,7 +255,6 @@ class ForeignTable(Resource):
         Create a foreign table
         '''
         payload = defaultpayload(api.payload)
-        print(payload)
 
         if len(payload['table'].split('.')) != 2:
             abort(400, 'table should be in the form schema.table ({table})'.format(**payload))
