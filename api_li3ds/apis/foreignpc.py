@@ -458,7 +458,7 @@ class ForeignViews(Resource):
                                 ) as time
                             , paid
                     from (select
-                            row_number() over () as paid
+                            (row_number() over ())-1 as paid
                             , pc_explode(points) as point from {table_schema}.{table}) _
                     , (select timestamp '1980-01-06 00:00:00' timestart) as gps
                 ),
