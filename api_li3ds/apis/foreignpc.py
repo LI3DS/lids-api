@@ -449,7 +449,8 @@ class ForeignViews(Resource):
                            extract(epoch from
                                 make_interval(weeks => (
                                     -- compute the GPS week number
-                                    extract(days from timestamp %(filedate)s - gps.timestart) / 7)::int)
+                                    extract(days from
+                                            timestamp %(filedate)s - gps.timestart) / 7)::int)
                                     -- find the beginning of GPS week
                                     + gps.timestart
                                     -- add the seconds
@@ -473,8 +474,8 @@ class ForeignViews(Resource):
                            paid, param.time as time
                     from param
                 )
-                select paid as id, pc_patch(pt order by time)::pcpatch(%(pcid)s) as points from point
-                group by paid
+                select paid as id, pc_patch(pt order by time)::pcpatch(%(pcid)s) as points
+                from point group by paid
             '''
             # extract date from LANDINS_20170516_075157_PP
             filedate = payload['table'].split('_')[1]
