@@ -455,7 +455,10 @@ class ForeignViews(Resource):
                                     -- add the seconds
                                     + make_interval(secs => pc_get(point, 'm_time'))
                                 ) as time
-                    from (select pc_explode(points) as point from {table_schema}.{table}) _
+                            , paid
+                    from (select
+                            row_number() over () as paid
+                            , pc_explode(points) as point from {table_schema}.{table}) _
                     , (select timestamp '1980-01-06 00:00:00' timestart) as gps
                 ),
                 point as (
@@ -467,11 +470,11 @@ class ForeignViews(Resource):
                                             t1 * t2 * t4 - t0 * t3 * t5,
                                             st_x(xy), st_y(xy), z, time
                                         ]) as pt,
-                           row_number() over () as _id
+                           paid, param.time as time
                     from param
                 )
-                select (_id-1)/100 as id, pc_patch(pt)::pcpatch(%(pcid)s) as points from point
-                group by id order by id
+                select paid as id, pc_patch(pt order by time)::pcpatch(%(pcid)s) as points from point
+                group by paid
             '''
             # extract date from LANDINS_20170516_075157_PP
             filedate = payload['table'].split('_')[1]
