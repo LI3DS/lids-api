@@ -507,6 +507,11 @@ class ForeignViews(Resource):
                 create index on {view_schema}.{view} (pc_patchmax(points, 'time'))
             ''').format(**identifiers)
             Database.rowcount(req)
+        else:
+            req = sql.SQL('''
+                create index on {view_schema}.{view} (pc_patchavg(points, 'time'));
+            ''').format(**identifiers)
+            Database.rowcount(req)
 
         req = views_sql + ' where v.schemaname = %(view_schema)s and v.matviewname = %(view)s'
         parameters = {'view_schema': view_schema, 'view': view}
