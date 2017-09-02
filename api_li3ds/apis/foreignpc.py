@@ -437,25 +437,25 @@ class ForeignViews(Resource):
             # rotation sequence (10) of the NASA document (appendix A) is used, with a slight
             # change because of an axis inversion
             # the quaternion we use is (0, 1/sqrt(2), 1/sqrt(2), 0) * nasa quaternion
-            # theta1 is roll
+            # theta1 is heading
             # theta2 is pitch
-            # theta3 is heading
-            # qw = 1/sqrt(2) * (-b - c) = 1/sqrt(2) * (sin(0.5*r) * sin(0.5*p) * cos(0.5*h) -
-            #                                          sin(0.5*h) * cos(0.5*r) * cos(0.5*p) -
-            #                                          sin(0.5*r) * sin(0.5*h) * cos(0.5*p) -
-            #                                          sin(0.5*p) * cos(0.5*r) * cos(0.5*h))
-            # qx = 1/sqrt(2) *  (a + d) = 1/sqrt(2) * (sin(0.5*r) * sin(0.5*p) * sin(0.5*h) +
-            #                                          cos(0.5*r) * cos(0.5*p) * cos(0.5*h) +
-            #                                          sin(0.5*r) * cos(0.5*p) * cos(0.5*h) -
-            #                                          sin(0.5*p) * sin(0.5*h) * cos(0.5*r))
-            # qy = 1/sqrt(2) *  (a - d) = 1/sqrt(2) * (sin(0.5*r) * sin(0.5*p) * sin(0.5*h) +
-            #                                          cos(0.5*r) * cos(0.5*p) * cos(0.5*h) -
-            #                                          sin(0.5*r) * cos(0.5*p) * cos(0.5*h) +
-            #                                          sin(0.5*p) * sin(0.5*h) * cos(0.5*r))
-            # qz = 1/sqrt(2) *  (c - b) = 1/sqrt(2) * (sin(0.5*r) * sin(0.5*h) * cos(0.5*p) +
-            #                                          sin(0.5*p) * cos(0.5*r) * cos(0.5*h) +
-            #                                          sin(0.5*r) * sin(0.5*p) * cos(0.5*h) -
-            #                                          sin(0.5*h) * cos(0.5*r) * cos(0.5*p))
+            # theta3 is roll
+            # qw = 1/sqrt(2) * (-b - c) = 1/sqrt(2) * (sin(0.5*h) * sin(0.5*p) * cos(0.5*r) -
+            #                                          sin(0.5*r) * cos(0.5*h) * cos(0.5*p) -
+            #                                          sin(0.5*h) * sin(0.5*r) * cos(0.5*p) -
+            #                                          sin(0.5*p) * cos(0.5*h) * cos(0.5*r))
+            # qx = 1/sqrt(2) *  (a + d) = 1/sqrt(2) * (sin(0.5*h) * sin(0.5*p) * sin(0.5*r) +
+            #                                          cos(0.5*h) * cos(0.5*p) * cos(0.5*r) +
+            #                                          sin(0.5*h) * cos(0.5*p) * cos(0.5*r) -
+            #                                          sin(0.5*p) * sin(0.5*r) * cos(0.5*h))
+            # qy = 1/sqrt(2) *  (a - d) = 1/sqrt(2) * (sin(0.5*h) * sin(0.5*p) * sin(0.5*r) +
+            #                                          cos(0.5*h) * cos(0.5*p) * cos(0.5*r) -
+            #                                          sin(0.5*h) * cos(0.5*p) * cos(0.5*r) +
+            #                                          sin(0.5*p) * sin(0.5*r) * cos(0.5*h))
+            # qz = 1/sqrt(2) *  (c - b) = 1/sqrt(2) * (sin(0.5*h) * sin(0.5*r) * cos(0.5*p) +
+            #                                          sin(0.5*p) * cos(0.5*h) * cos(0.5*r) +
+            #                                          sin(0.5*h) * sin(0.5*p) * cos(0.5*r) -
+            #                                          sin(0.5*r) * cos(0.5*h) * cos(0.5*p))
             select = '''
                 with param as (
                     select sin(pc_get(point, 'm_roll') * 0.5) as t0,
@@ -495,14 +495,14 @@ class ForeignViews(Resource):
                 point as (
                     select pc_makepoint(%(pcid)s,
                                         ARRAY[
-                                            (1/sqrt(2))*(t0*t2*t5-t4*t1*t3-
-                                                         t0*t4*t3-t2*t1*t5),
-                                            (1/sqrt(2))*(t0*t2*t4+t1*t3*t5+
-                                                         t0*t3*t5-t2*t4*t1),
-                                            (1/sqrt(2))*(t0*t2*t4+t1*t3*t5-
-                                                         t0*t3*t5+t2*t4*t1),
-                                            (1/sqrt(2))*(t0*t4*t3+t2*t1*t5+
-                                                         t0*t2*t5-t4*t1*t3),
+                                            (1/sqrt(2))*(t4*t2*t1-t0*t5*t3-
+                                                         t4*t0*t3-t2*t5*t1),
+                                            (1/sqrt(2))*(t4*t2*t0+t5*t3*t1+
+                                                         t4*t3*t1-t2*t0*t5),
+                                            (1/sqrt(2))*(t4*t2*t0+t5*t3*t1-
+                                                         t4*t3*t1+t2*t0*t5),
+                                            (1/sqrt(2))*(t4*t0*t3+t2*t5*t1+
+                                                         t4*t2*t1-t0*t5*t3),
                                             st_x(xy), st_y(xy), z, time
                                         ]) as pt,
                            paid, param.time as time
