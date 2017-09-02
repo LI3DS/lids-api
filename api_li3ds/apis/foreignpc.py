@@ -462,14 +462,8 @@ class ForeignViews(Resource):
                            cos(pc_get(point, 'm_roll') * 0.5) as t1,
                            sin(pc_get(point, 'm_pitch') * 0.5) as t2,
                            cos(pc_get(point, 'm_pitch') * 0.5) as t3,
-                           sin((pc_get(point, 'm_plateformHeading') -
-                                pc_get(point, 'm_wanderAngle') -
-                                (0.72537437089 * (pc_get(point, 'x') - 0.0523598775598))
-                               ) * 0.5) as t4,
-                           cos((pc_get(point, 'm_plateformHeading') -
-                                pc_get(point, 'm_wanderAngle') -
-                                (0.72537437089 * (pc_get(point, 'x') - 0.0523598775598))
-                               ) * 0.5) as t5,
+                           sin(pc_get(point, 'm_plateformHeading') * 0.5) t4,
+                           cos(pc_get(point, 'm_plateformHeading') * 0.5) t5,
                            st_transform(
                                st_setsrid(
                                    st_makepoint(pc_get(point, 'x'), pc_get(point, 'y')),
