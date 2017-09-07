@@ -432,14 +432,32 @@ class ForeignViews(Resource):
                 res = Database.query_asdict(req, {'schema_quat': schema_quat, 'srid': srid})
             pcid = res[0]['pcid']
 
+            # Euler angles (roll, pitch, heading) are converted to quaternions. This is done
+            # using sequence number 9 in
+            # https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19770024290.pdf
+            # The following angles are used:
+            # θ1 = -m_plateformHeading + π/2
+            # θ2 = m_roll
+            # θ3 = -m_pitch
+            #
+            # For the heading a correction is used:
+            # heading = m_plateformHeading - 0.72537437089 * (longitude - 0.0523598775598)
+            # 0.72537437089 = sin(46.5°), 46.5° = latitude origin of Lambert93
+            # 0.0523598775598 radians = 3 degrees (east of Greenwich): longitude origin of Lambert93
+            # longitude is in radians (x is in degrees in the Sbet file)
+            #
             select = '''
                 with param as (
                     select sin(pc_get(point, 'm_roll') * 0.5) as t0,
                            cos(pc_get(point, 'm_roll') * 0.5) as t1,
                            sin(-pc_get(point, 'm_pitch') * 0.5) as t2,
                            cos(-pc_get(point, 'm_pitch') * 0.5) as t3,
-                           sin((-pc_get(point, 'm_plateformHeading') + pi() / 2) * 0.5) t4,
-                           cos((-pc_get(point, 'm_plateformHeading') + pi() / 2) * 0.5) t5,
+                           sin((-(pc_get(point, 'm_plateformHeading') -
+                                 0.72537437089 * (radians(pc_get(point, 'x')) - 0.0523598775598))
+                               + pi() / 2) * 0.5) t4,
+                           cos((-(pc_get(point, 'm_plateformHeading') -
+                                 0.72537437089 * (radians(pc_get(point, 'x')) - 0.0523598775598))
+                               + pi() / 2) * 0.5) t5,
                            st_transform(
                                st_setsrid(
                                    st_makepoint(pc_get(point, 'x'), pc_get(point, 'y')),
