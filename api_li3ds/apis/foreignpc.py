@@ -432,6 +432,14 @@ class ForeignViews(Resource):
                 res = Database.query_asdict(req, {'schema_quat': schema_quat, 'srid': srid})
             pcid = res[0]['pcid']
 
+            # Euler angles (roll, pitch, heading) are converted to quaternions. This is done
+            # using sequence number 9 in
+            # https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19770024290.pdf
+            # The following angles are used:
+            # θ1 = -m_plateformHeading + π/2
+            # θ2 = m_roll
+            # θ3 = -m_pitch
+
             select = '''
                 with param as (
                     select sin(pc_get(point, 'm_roll') * 0.5) as t0,
