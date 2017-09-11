@@ -64,7 +64,6 @@ def init_apis():
     from api_li3ds.apis.project import nsproject
     from api_li3ds.apis.session import nssession
     from api_li3ds.apis.platform import nspfm
-    from api_li3ds.apis.itowns import nsitowns
     from api_li3ds.apis.datasource import nsds
     from api_li3ds.apis.sensor import nssensor
     from api_li3ds.apis.referential import nsrf
