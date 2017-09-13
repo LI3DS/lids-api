@@ -50,7 +50,7 @@ class Projects(Resource):
             api.payload.update(timezone=project_model_post['timezone'].default)
         return Database.query_asdict(
             "insert into li3ds.project (name, timezone, extent) "
-            "values (%(name)s, %(timezone)s, %(extent)s::geometry) "
+            "values (%(name)s, %(timezone)s, ST_Transform(%(extent)s::geometry,4326)) "
             "returning *",
             defaultpayload(api.payload)
         ), 201
